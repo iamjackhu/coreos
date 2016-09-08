@@ -1,0 +1,18 @@
+[Unit]
+Description=CoreGI
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+User=jack
+TimeoutStartSec=0
+ExecStart=/usr/bin/docker run --name coregi \
+      -p 3000:3000 \
+      -e ETCD_HOST=${COREOS_PRIVATE_IPV4} \
+      -e FLEET_ENDPOINT='http://${COREOS_PRIVATE_IPV4}:4001' \
+      ${COREOS_REGISTRY}/coregi
+ExecStop=/usr/bin/docker stop coregi
+
+[X-Fleet]
+Global=true

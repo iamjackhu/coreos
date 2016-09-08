@@ -1,0 +1,18 @@
+[Unit]
+Description=InfluxDB Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+User=jack
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill influxdb
+ExecStartPre=-/usr/bin/docker rm influxdb
+ExecStartPre=/usr/bin/mkdir -p ${LOCAL_DISK1}/influxdb/data
+ExecStart=/bin/sh -c '/usr/bin/docker run --name influxdb \
+                      -v ${LOCAL_DISK1}/influxdb/data:/var/lib/influxdb \
+                      -p 8083:8083 -p 8086:8086 ${COREOS_REGISTRY}/influxdb'
+ExecStop=/usr/bin/docker stop influxdb
+
+[X-Fleet]

@@ -1,0 +1,18 @@
+[Unit]
+Description=Elastic Search service
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+User=jack
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/elasticsearch/data
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/elasticsearch/log
+ExecStart=/bin/sh -c '/usr/bin/docker run --name elasticsearch \
+                      -v ${LOCAL_DISK1}/elasticsearch/data:/usr/share/elasticsearch/data \
+                      -v ${LOCAL_DISK1}/elasticsearch/log:/usr/share/elasticsearch/log \
+                      -p 9200:9200 -p 9300:9300 ${COREOS_REGISTRY}/elasticsearch '
+ExecStop=/usr/bin/docker stop elasticsearch
+
+[X-Fleet]

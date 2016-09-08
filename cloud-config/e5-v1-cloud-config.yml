@@ -1,0 +1,91 @@
+#cloud-config
+coreos:
+  etcd2:
+    name: node1
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    initial-cluster: node0=http://10.0.0.100:2380,node1=http://10.0.0.101:2380
+    initial-advertise-peer-urls: http://10.0.0.101:2380
+    listen-peer-urls: http://0.0.0.0:2380
+    advertise-client-urls: http://10.0.0.101:2379
+    initial-cluster-token: coreos-cluster
+    initial-cluster-state: new
+  fleet:
+    etcd_servers: http://0.0.0.0:2379,http://127.0.0.1:4001
+    metadata: region=coreos-cluster@node1
+    public-ip: 10.0.1.101
+  units:
+    - name: etcd2.service
+      command: start
+    - name: fleet.service
+      command: start
+    - name: media-sda1.mount
+      command: start
+      content: |
+        [Mount]
+        What=/dev/sda1
+        Where=/media/sda1
+        Type=ext4
+    - name: media-sdb1.mount
+      command: start
+      content: |
+        [Mount]
+        What=/dev/sdb1
+        Where=/media/sdb1
+        Type=ext4
+    - name: media-sdc1.mount
+      command: start
+      content: |
+        [Mount]
+        What=/dev/sdc1
+        Where=/media/sdc1
+        Type=ext4
+    - name: media-sdd1.mount
+      command: start
+      content: |
+        [Mount]
+        What=/dev/sdd1
+        Where=/media/sdd1
+        Type=ext4
+    - name: rpc-statd.service
+      command: start
+      enable: true
+hostname: "node1" 
+users:
+  - name: "jack"
+    passwd: "$6$BSh2ltL4$gF2YU6zYuo49ZWwWO9ZxX.4tQ8gLHDMXwL0VbsG96hZpaEsE9gOa9ID4ET6ebLDl2orVAov0m0zgk6LSwXTM4/"
+    groups:
+      - "sudo"
+      - "docker"
+    ssh-authorized-keys:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDG8FWtQ0ynyf2z6P0HF/toALe2Qp9jeg3fxQQZ1qexV38gtrmBszGVXQP4bHX8Lpe4Svg+PxrchYsExrXts+PNYcHaPZhRi6WKmJ8FmlMp1HoKAVXJwV/+FzNia02kUeD9oOMrbndfP1u3ubhbnrRFrbrWpE3MhTV9KptvgDlGAqjjJ/zN7w3JxOnILxPTM7dtH5k0EKrz3h2Bjd6DZGH2MdHH1NFajM5gyFtn/dd2j/Xd38eXKzN8wvU5iusqXj6yVXa1HeDklbwj9kRxFwONTrv3EDi4v9eUqfCAuLbe5rnHq9wg50oS2BdlKqOTXxIYbUXcKz6hkxK8WOa/Ywb3 jack@Jacks-MacBook-Pro.local"
+write_files:
+  - path: "/etc/environment"
+    permissions: "0644"
+    owner: "root"
+    content: |
+      COREOS_PUBLIC_IPV4=10.0.1.101
+      COREOS_PRIVATE_IPV4=10.0.0.101
+      COREOS_REGISTRY=node0:5000
+      LOCAL_DISK1=/media/sda1
+      LOCAL_DISK2=/media/sdb1
+      LOCAL_DISK3=/media/sdc1
+      LOCAL_DISK4=/media/sdd1
+
+write_files:
+  - path: "/etc/hosts"
+    permissions: "0644"
+    owner: "root"
+    content: |
+      10.0.0.100  node0
+      10.0.0.101  node1
+write_files:
+  - path: /etc/systemd/system/docker.service.d/50-insecure-registry.conf
+    content: |
+        [Service]
+        Environment="DOCKER_OPTS=--insecure-registry 10.0.0.0/16"
+write_files:
+  - path: /home/jack/.docker/config.json
+    permissions: "0744"
+    owner: "jack"
+    content: |
+        { "auths": { "node0:5000": { "auth": "amFjazpodWp1bmxpbnV4", "email": "iamjackhu@163.com" } } }
