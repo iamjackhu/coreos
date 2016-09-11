@@ -12,12 +12,17 @@ coreos:
   fleet:
     public-ip: 10.0.1.100
     etcd_servers: http://0.0.0.0:2379,http://127.0.0.1:4001
-    metadata: region=coreos-cluster@node0
+    metadata: region=coreos-cluster@node0,disk1=true
   units:
     - name: etcd2.service
       command: start
-    - name: fleet.service
+    - name: flanneld.service
       command: start
+      drop-ins:
+        - name: 50-network-config.conf
+          content: |
+            [Service]
+            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.0.2.0/24", "Backend": {"Type": "vxlan"} }'
     - name: media-sda1.mount
       command: start
       content: |
@@ -28,16 +33,22 @@ coreos:
     - name: rpc-statd.service
       command: start
       enable: true
-    - name: enp4s0.network
-      runtime: true
-      content: |
-         [Match]
-          Name=enp4s0
-
-         [Network]
-          Address=10.0.0.100/24
-          Gateway=10.0.0.1
-    
+    - name: flanneld.service
+      drop-ins:
+        - name: 50-network-config.conf
+          content: |
+            [Service]
+            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.0.2.0/24" }'
+      command: start
+    - name: systemd-journald.service
+      command: restart
+      drop-ins:
+        - name: 10-debug.conf
+          content: |
+            [Service]
+            Environment=SYSTEMD_LOG_LEVEL=debug
+    - name: fleet.service
+      command: start
 hostname: "node0" 
 users:
   - name: "jack"
@@ -47,6 +58,7 @@ users:
       - "docker"
     ssh-authorized-keys:
       - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDG8FWtQ0ynyf2z6P0HF/toALe2Qp9jeg3fxQQZ1qexV38gtrmBszGVXQP4bHX8Lpe4Svg+PxrchYsExrXts+PNYcHaPZhRi6WKmJ8FmlMp1HoKAVXJwV/+FzNia02kUeD9oOMrbndfP1u3ubhbnrRFrbrWpE3MhTV9KptvgDlGAqjjJ/zN7w3JxOnILxPTM7dtH5k0EKrz3h2Bjd6DZGH2MdHH1NFajM5gyFtn/dd2j/Xd38eXKzN8wvU5iusqXj6yVXa1HeDklbwj9kRxFwONTrv3EDi4v9eUqfCAuLbe5rnHq9wg50oS2BdlKqOTXxIYbUXcKz6hkxK8WOa/Ywb3 jack@Jacks-MacBook-Pro.local"
+
 write_files:
   - path: "/etc/environment"
     permissions: "0644"
@@ -55,7 +67,7 @@ write_files:
       COREOS_PUBLIC_IPV4=10.0.1.100
       COREOS_PRIVATE_IPV4=10.0.0.100
       COREOS_REGISTRY=node0:5000
-      LOCAL_DISK1=/media/sda1
+      LOCAL_DISK0=/media/sda1
 
 write_files:
   - path: "/etc/hosts"
@@ -64,11 +76,13 @@ write_files:
     content: |
       10.0.0.100  node0
       10.0.0.101  node1
+
 write_files:
   - path: /etc/systemd/system/docker.service.d/50-insecure-registry.conf
     content: |
         [Service]
         Environment="DOCKER_OPTS=--insecure-registry 10.0.0.0/16"
+
 write_files:
   - path: /home/jack/.docker/config.json
     permissions: "0744"

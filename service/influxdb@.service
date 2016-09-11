@@ -1,0 +1,24 @@
+[Unit]
+Description=InfluxDB %i Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+User=jack
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill influxdb-%i
+ExecStartPre=-/usr/bin/docker rm influxdb-%i
+ExecStartPre=-/bin/sh -c '/usr/bin/mkdir -p ${SSD}/influxdb '
+ExecStartPre=-/bin/sh -c '/usr/bin/etcdctl set /services/influxdb/db-%i ${COREOS_PUBLIC_IPV4}'
+ExecStart=/bin/sh -c 'usr/bin/docker run --name influxdb-%i \
+                      -v ${SSD}/influxdb:/var/lib/influxdb \
+                      -p 8083:8083 \
+                      -p 8086:8086 \
+                      -t ${COREOS_REGISTRY}/influxdb'
+ExecStop=/usr/bin/etcdctl rm /services/influxdb/db-%i
+ExecStopPost=/usr/bin/docker stop influxdb-%i
+
+[X-Fleet]
+X-Conflicts=influxdb@*.service
+MachineMetadata=disk=ssd

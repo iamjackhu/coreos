@@ -10,13 +10,11 @@ coreos:
     initial-cluster-token: coreos-cluster
     initial-cluster-state: new
   fleet:
-    etcd_servers: http://0.0.0.0:2379,http://127.0.0.1:4001
-    metadata: region=coreos-cluster@node1
     public-ip: 10.0.1.101
+    etcd_servers: http://0.0.0.0:2379,http://127.0.0.1:4001
+    metadata: region=coreos-cluster@node1,disk=ssd,disk1=true,disk2=true,disk2=true,disk3=true
   units:
     - name: etcd2.service
-      command: start
-    - name: fleet.service
       command: start
     - name: media-sda1.mount
       command: start
@@ -49,6 +47,8 @@ coreos:
     - name: rpc-statd.service
       command: start
       enable: true
+    - name: fleet.service
+      command: start
 hostname: "node1" 
 users:
   - name: "jack"
@@ -66,11 +66,9 @@ write_files:
       COREOS_PUBLIC_IPV4=10.0.1.101
       COREOS_PRIVATE_IPV4=10.0.0.101
       COREOS_REGISTRY=node0:5000
-      LOCAL_DISK1=/media/sda1
-      LOCAL_DISK2=/media/sdb1
-      LOCAL_DISK3=/media/sdc1
-      LOCAL_DISK4=/media/sdd1
-
+      LOCAL_DISK0=/media/sda1
+      SSD=/media/sdb1
+      
 write_files:
   - path: "/etc/hosts"
     permissions: "0644"
