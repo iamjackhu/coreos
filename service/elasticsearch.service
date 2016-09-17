@@ -9,17 +9,17 @@ User=jack
 Restart=always
 TimeoutStartSec=0
 ExecStartPre=-/usr/bin/etcdctl setdir /services/elasticsearch/${COREOS_PUBLIC_IPV4}
-ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK}/elasticsearch/config/scripts
-ExecStartPre=-/bin/sh -c '/usr/bin/echo "network.host: 0.0.0.0" > ${LOCAL_DISK0}/elasticsearch/config/elasticsearch.yml'
-ExecStartPre=-/bin/sh -c '/usr/bin/echo "discovery.zen.ping.unicast.hosts: [ $(/usr/bin/etcdctl ls /services/elasticsearch | cut -c25- | sed s/^/\",\"/ | xargs | cut -c2-) ]" >> ${LOCAL_DISK0}/elasticsearch/config/elasticsearch.yml' 
-ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK0}/elasticsearch/data
-ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK0}/elasticsearch/log
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/elasticsearch/config/scripts
+ExecStartPre=-/bin/sh -c '/usr/bin/echo "network.host: 0.0.0.0" > ${LOCAL_DISK1}/elasticsearch/config/elasticsearch.yml'
+ExecStartPre=-/bin/sh -c '/usr/bin/echo "discovery.zen.ping.unicast.hosts: [ $(/usr/bin/etcdctl ls /services/elasticsearch | cut -c25- | sed s/^/\",\"/ | xargs | cut -c2-) ]" >> ${LOCAL_DISK1}/elasticsearch/config/elasticsearch.yml' 
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/elasticsearch/data
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/elasticsearch/log
 ExecStartPre=-/usr/bin/docker kill elasticsearch
 ExecStartPre=-/usr/bin/docker rm elasticsearch
 ExecStart=/bin/sh -c '/usr/bin/docker run --name elasticsearch --net=host \
-                      -v ${LOCAL_DISK0}/elasticsearch/data:/usr/share/elasticsearch/data \
-                      -v ${LOCAL_DISK0}/elasticsearch/config:/usr/share/elasticsearch/config \
-                      -v ${LOCAL_DISK0}/elasticsearch/log:/usr/share/elasticsearch/log \
+                      -v ${LOCAL_DISK1}/elasticsearch/data:/usr/share/elasticsearch/data \
+                      -v ${LOCAL_DISK1}/elasticsearch/config:/usr/share/elasticsearch/config \
+                      -v ${LOCAL_DISK1}/elasticsearch/log:/usr/share/elasticsearch/log \
                       -p 9200:9200 -p 9300:9300 ${COREOS_REGISTRY}/elasticsearch \
                       -Des.node.name=${COREOS_PUBLIC_IPV4} \
                       -Des.cluster.name=es-cluster '

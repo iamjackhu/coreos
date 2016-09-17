@@ -1,0 +1,38 @@
+[Unit]
+Description=ZooKeeper Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+User=jack
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/bin/sh -c '/usr/bin/etcdctl set /services/zookeeper/${COREOS_PUBLIC_IPV4} .$(echo ${COREOS_PUBLIC_IPV4} | cut -d '.' -f4)=${COREOS_PUBLIC_IPV4}'
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/zookeeper/conf
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/zookeeper/data
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/zookeeper/datalog
+ExecStartPre=-/bin/sh -c '/usr/bin/echo $(echo ${COREOS_PUBLIC_IPV4} | cut -d '.' -f4) > ${LOCAL_DISK1}/zookeeper/data/myid'
+ExecStartPre=-/bin/sh -c '/usr/bin/echo $(/usr/bin/etcdctl ls /services/zookeeper |    \
+                      xargs -I {} /usr/bin/etcdctl get {} | \
+                      sed s/^/"server"/ | sed s/$/":2888:3888"/) | \
+                      tr -s " " "\012" > ${LOCAL_DISK1}/zookeeper/conf/zoo.cfg' 
+ExecStartPre=-/bin/sh -c '/usr/bin/echo clientPort=2181 >> ${LOCAL_DISK1}/zookeeper/conf/zoo.cfg'
+ExecStartPre=-/bin/sh -c '/usr/bin/echo dataDir=/data >> ${LOCAL_DISK1}/zookeeper/conf/zoo.cfg'
+ExecStartPre=-/bin/sh -c '/usr/bin/echo dataLogDir=/datalog >> ${LOCAL_DISK1}/zookeeper/conf/zoo.cfg'
+ExecStartPre=-/bin/sh -c '/usr/bin/echo tickTime=2000 >> ${LOCAL_DISK1}/zookeeper/conf/zoo.cfg'
+ExecStartPre=-/bin/sh -c '/usr/bin/echo initLimit=5 >> ${LOCAL_DISK1}/zookeeper/conf/zoo.cfg'
+ExecStartPre=-/bin/sh -c '/usr/bin/echo syncLimit=2 >> ${LOCAL_DISK1}/zookeeper/conf/zoo.cfg'
+ExecStartPre=-/usr/bin/docker kill %H-zookeeper
+ExecStartPre=-/usr/bin/docker rm %H-zookeeper
+ExecStart=/bin/sh -c '/usr/bin/docker run --name %H-zookeeper \
+					  -v ${LOCAL_DISK1}/zookeeper/data:/data \
+					  -v ${LOCAL_DISK1}/zookeeper/datalog:/datalog \
+					  -v ${LOCAL_DISK1}/zookeeper/conf:/conf \
+                      --net=host ${COREOS_REGISTRY}/zookeeper '
+ExecStop=/usr/bin/etcdctl rm /services/zookeeper/${COREOS_PUBLIC_IPV4}
+ExecStopPost=/usr/bin/docker rm -f %H-zookeeper
+
+[X-Fleet]
+Global=true
+MachineMetadata=zookeeper=true

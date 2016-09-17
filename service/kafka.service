@@ -1,0 +1,29 @@
+[Unit]
+Description=kafka Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+User=jack
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/bin/sh -c '/usr/bin/etcdctl setdir /services/kafka/${COREOS_PUBLIC_IPV4} '
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/kafka/data
+ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/kafka/logs
+ExecStartPre=-/usr/bin/docker kill %H-kafka
+ExecStartPre=-/usr/bin/docker rm %H-kafka
+ExecStart=/bin/sh -c '/usr/bin/docker run --name %H-kafka \
+					  -v ${LOCAL_DISK1}/kafka/data:/data \
+					  -v ${LOCAL_DISK1}/kafka/logs:/logs \
+					  -e KAFKA_BROKER_ID=$(echo ${COREOS_PUBLIC_IPV4} | cut -d '.' -f4) \ 
+					  -e ZOOKEEPER_CONNECTION_STRING=$(/usr/bin/etcdctl ls /services/zookeeper | \
+                      cut -d '/' -f4 | sed s/$/":2181"/ | \
+                      tr "\n" ",") \
+                      -p 9092:9092 -p 7203:7203 ${COREOS_REGISTRY}/kafka '
+ExecStop=/usr/bin/etcdctl rm /services/kafka/${COREOS_PUBLIC_IPV4}
+ExecStopPost=/usr/bin/docker rm -f %H-kafka
+
+[X-Fleet]
+Global=true
+MachineMetadata=zookeeper=true

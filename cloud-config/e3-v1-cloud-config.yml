@@ -3,51 +3,38 @@ coreos:
   etcd2:
     name: node0
     listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
-    initial-cluster: node0=http://10.0.0.100:2380,node1=http://10.0.0.101:2380
+    initial-cluster: node0=http://10.0.0.100:2380
     initial-advertise-peer-urls: http://10.0.0.100:2380
     listen-peer-urls: http://0.0.0.0:2380
     advertise-client-urls: http://10.0.0.100:2379
-    initial-cluster-token: coreos-cluster
+    initial-cluster-token: jack-coreos-cluster
     initial-cluster-state: new
   fleet:
     public-ip: 10.0.1.100
     etcd_servers: http://0.0.0.0:2379,http://127.0.0.1:4001
-    metadata: region=coreos-cluster@node0,disk1=true
+    metadata: region=node0,disk0=true,disk1=true,disk2=true,cpu=e3-xeon,ssd=true
   units:
     - name: etcd2.service
       command: start
-    - name: flanneld.service
-      command: start
-      drop-ins:
-        - name: 50-network-config.conf
-          content: |
-            [Service]
-            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.0.2.0/24", "Backend": {"Type": "vxlan"} }'
-    - name: media-sda1.mount
+    - name: media-sdb1.mount
       command: start
       content: |
         [Mount]
-        What=/dev/sda1
-        Where=/media/sda1
+        What=/dev/sdb1
+        Where=/media/sdb1
+        Type=ext4
+    - name: media-sdc1.mount
+      command: start
+      content: |
+        [Mount]
+        What=/dev/sdc1
+        Where=/media/sdc1
         Type=ext4
     - name: rpc-statd.service
       command: start
       enable: true
-    - name: flanneld.service
-      drop-ins:
-        - name: 50-network-config.conf
-          content: |
-            [Service]
-            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.0.2.0/24" }'
-      command: start
-    - name: systemd-journald.service
-      command: restart
-      drop-ins:
-        - name: 10-debug.conf
-          content: |
-            [Service]
-            Environment=SYSTEMD_LOG_LEVEL=debug
     - name: fleet.service
+
       command: start
 hostname: "node0" 
 users:
@@ -67,7 +54,10 @@ write_files:
       COREOS_PUBLIC_IPV4=10.0.1.100
       COREOS_PRIVATE_IPV4=10.0.0.100
       COREOS_REGISTRY=node0:5000
-      LOCAL_DISK0=/media/sda1
+      LOCAL_DISk0=/
+      LOCAL_DISK1=/media/sdb1
+      LOCAL_DISK2=/media/sdc1
+      SSD=/media/sdb1
 
 write_files:
   - path: "/etc/hosts"
@@ -76,6 +66,7 @@ write_files:
     content: |
       10.0.0.100  node0
       10.0.0.101  node1
+      10.0.0.102  node2
 
 write_files:
   - path: /etc/systemd/system/docker.service.d/50-insecure-registry.conf
