@@ -1,5 +1,7 @@
 [Unit]
 Description=Announce RethinkDB %i service
+BindsTo=rethinkdb@%i.service
+After=rethinkdb@%i.service
 
 [Service]
 EnvironmentFile=/etc/environment
@@ -7,4 +9,5 @@ ExecStart=/bin/sh -c "while true; do etcdctl set /services/rethinkdb/db-%i ${COR
 ExecStop=/usr/bin/etcdctl rm /services/rethinkdb/db-%i
 
 [X-Fleet]
+MachineOf=rethinkdb@%i.service
 X-Conflicts=rethinkdb-announce@*.service
