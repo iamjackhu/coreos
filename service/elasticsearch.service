@@ -16,7 +16,7 @@ ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/elasticsearch/data
 ExecStartPre=-/usr/bin/mkdir -p ${LOCAL_DISK1}/elasticsearch/log
 ExecStartPre=-/usr/bin/docker kill elasticsearch
 ExecStartPre=-/usr/bin/docker rm elasticsearch
-ExecStart=/bin/sh -c '/usr/bin/docker run --name elasticsearch --net=host \
+ExecStart=/bin/sh -c '/usr/bin/docker run --name elasticsearch \
                       -v ${LOCAL_DISK1}/elasticsearch/data:/usr/share/elasticsearch/data \
                       -v ${LOCAL_DISK1}/elasticsearch/config:/usr/share/elasticsearch/config \
                       -v ${LOCAL_DISK1}/elasticsearch/log:/usr/share/elasticsearch/log \

@@ -1,40 +1,50 @@
 #cloud-config
+
 coreos:
   etcd2:
     name: node1
-    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
-    initial-cluster: node0=http://10.0.0.100:2380,node1=http://10.0.0.101:2380
-    initial-advertise-peer-urls: http://10.0.0.101:2380
-    listen-peer-urls: http://0.0.0.0:2380
-    advertise-client-urls: http://10.0.0.101:2379
-    initial-cluster-token: jack-coreos-cluster
-    initial-cluster-state: new
+    proxy: on
+    listen-client-urls: http://10.0.1.101:2379,http://10.0.1.101:4001
+    initial-cluster: node0=http://10.0.1.100:2380
   fleet:
     public-ip: 10.0.1.101
-    etcd_servers: http://0.0.0.0:2379,http://127.0.0.1:4001
-    metadata: region=node0,disk1=true,disk2=true,cpu=e5-xeon,ssd=true
+    etcd_servers: http://10.0.1.101:2379,http://10.0.1.101:4001
+    metadata: region=coreos-cluster,disk1=true,cpu=e5-xeon,memory=32G,bigdisk=true,raid=0
   units:
-    - name: etcd2.service
-      command: start
-    - name: media-sda1.mount
+    - name: media-md126p1.mount
       command: start
       content: |
         [Mount]
-        What=/dev/sda1
-        Where=/media/sda1
-        Type=ext4
-    - name: media-sdb1.mount
-      command: start
-      content: |
-        [Mount]
-        What=/dev/sdb1
-        Where=/media/sdb1
+        What=/dev/md126p1
+        Where=/media/md126p1
         Type=ext4
     - name: rpc-statd.service
       command: start
       enable: true
+    - name: enp2s0f0.network
+      runtime: true
+      content: |
+        [Match]
+        Name=enp2s0f0
+
+        [Network]
+        Address=10.0.1.101/24
+        Gateway=10.0.1.1
+    - name: enp2s0f1.network
+      runtime: true
+      content: |
+        [Match]
+        Name=enp2s0f1
+
+        [Network]
+        Address=10.0.0.101/24
+        Gateway=10.0.0.1
+    - name: etcd2.service
+      command: start
+      enable: true
     - name: fleet.service
       command: start
+      enable: true
 hostname: "node1" 
 users:
   - name: "jack"
@@ -52,18 +62,17 @@ write_files:
       COREOS_PUBLIC_IPV4=10.0.1.101
       COREOS_PRIVATE_IPV4=10.0.0.101
       COREOS_REGISTRY=node0:5000
-      LOCAL_DISK1=/media/sda1
-      LOCAL_DISK2=/media/sdb1
-      SSD=/media/sdb1
+      LOCAL_DISK1=/media/md126p1
+      RAID_DISK=/media/md126p1
       
 write_files:
   - path: "/etc/hosts"
     permissions: "0644"
     owner: "root"
     content: |
-      10.0.0.100  node0
-      10.0.0.101  node1
-      10.0.0.102  node2
+      10.0.1.100  node0
+      10.0.1.101  node1
+      10.0.1.102  node2
 write_files:
   - path: /etc/systemd/system/docker.service.d/50-insecure-registry.conf
     content: |

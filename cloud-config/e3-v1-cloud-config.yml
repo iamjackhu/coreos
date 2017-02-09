@@ -1,21 +1,20 @@
 #cloud-config
+
 coreos:
   etcd2:
     name: node0
-    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
-    initial-cluster: node0=http://10.0.0.100:2380
-    initial-advertise-peer-urls: http://10.0.0.100:2380
-    listen-peer-urls: http://0.0.0.0:2380
-    advertise-client-urls: http://10.0.0.100:2379
-    initial-cluster-token: jack-coreos-cluster
+    listen-client-urls: http://10.0.1.100:2379,http://10.0.1.100:4001
+    initial-cluster: node0=http://10.0.1.100:2380
+    initial-advertise-peer-urls: http://10.0.1.100:2380
+    listen-peer-urls: http://10.0.1.100:2380
+    advertise-client-urls: http://10.0.1.100:2379
+    initial-cluster-token: coreos-cluster
     initial-cluster-state: new
   fleet:
     public-ip: 10.0.1.100
-    etcd_servers: http://0.0.0.0:2379,http://127.0.0.1:4001
-    metadata: region=node0,disk0=true,disk1=true,disk2=true,cpu=e3-xeon,ssd=true
+    etcd_servers: http://10.0.1.100:2379,http://10.0.1.100:4001
+    metadata: region=coreos-cluster,disk1=true,disk2=true,cpu=e3-xeon,memory=16G
   units:
-    - name: etcd2.service
-      command: start
     - name: media-sdb1.mount
       command: start
       content: |
@@ -30,11 +29,48 @@ coreos:
         What=/dev/sdc1
         Where=/media/sdc1
         Type=ext4
+    - name: enp2s0.network
+      runtime: true
+      content: |
+        [Match]
+        Name=enp2s0
+
+        [Network]
+        Address=10.0.1.100/24
+        Gateway=10.0.1.1
+    - name: enp3s0.network
+      runtime: true
+      content: |
+        [Match]
+        Name=enp3s0
+
+        [Network]
+        Address=10.0.0.100/24
+        Gateway=10.0.0.1
+    - name: enp4s0.network
+      runtime: true
+      content: |
+        [Match]
+        Name=enp4s0
+
+        [Network]
+        Address=10.0.2.2/30
+        Gateway=10.0.2.0
+    - name: enp5s0.network
+      runtime: true
+      content: |
+        [Match]
+        Name=enp5s0
+
+        [Network]
+        Address=10.0.2.6/30
+        Gateway=10.0.2.4
     - name: rpc-statd.service
       command: start
       enable: true
+    - name: etcd2.service
+      command: start
     - name: fleet.service
-
       command: start
 hostname: "node0" 
 users:
@@ -54,19 +90,18 @@ write_files:
       COREOS_PUBLIC_IPV4=10.0.1.100
       COREOS_PRIVATE_IPV4=10.0.0.100
       COREOS_REGISTRY=node0:5000
-      LOCAL_DISk0=/
-      LOCAL_DISK1=/media/sdb1
-      LOCAL_DISK2=/media/sdc1
-      SSD=/media/sdb1
+      LOCAL_DISK0=/
+      LOCAL_DISK1=/media/sdb1/
+      LOCAL_DISK2=/media/sdc1/
 
 write_files:
   - path: "/etc/hosts"
     permissions: "0644"
     owner: "root"
     content: |
-      10.0.0.100  node0
-      10.0.0.101  node1
-      10.0.0.102  node2
+      10.0.1.100  node0
+      10.0.1.101  node1
+      10.0.1.102  node2
 
 write_files:
   - path: /etc/systemd/system/docker.service.d/50-insecure-registry.conf
@@ -80,3 +115,4 @@ write_files:
     owner: "jack"
     content: |
         { "auths": { "node0:5000": { "auth": "amFjazpodWp1bmxpbnV4", "email": "iamjackhu@163.com" } } }
+
